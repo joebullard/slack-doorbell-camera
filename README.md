@@ -22,7 +22,7 @@ The `-I` for pip is required to ignore the system packages that may be in
 #### Create a Slack Incoming Webhook
 
 Follow the guide on
-(Creating Incoming Webhooks)[https://api.slack.com/incoming-webhooks]
+[Creating Incoming Webhooks](https://api.slack.com/incoming-webhooks)
 for your Slack team.
 
 Customize it how you like. But you need to use the URL you are given on that
@@ -36,7 +36,7 @@ submitting it to the app registry, etc. (maybe someday).
 
 Currently this is only coded to use a Service Account credentials file
 (supplied by you). Follow the guide on
-(Service Accounts)[https://cloud.google.com/compute/docs/access/service-accounts],
+[Service Accounts](https://cloud.google.com/compute/docs/access/service-accounts),
 and make sure to enable Cloud Vision API in your project.
 
 ## Run the "bot"
@@ -44,6 +44,6 @@ and make sure to enable Cloud Vision API in your project.
 Not an actual Slack Bot, but you can host this wherever you want and have it
 read from your camera.
 
-`python doorbell.py --json_keyfile /path/to/service_account_credentials.json`
+`python doorbell.py --json-keyfile /path/to/service-account-credentials.json`
 
 For full list of arguments, run `python doorbell.py -h`
