@@ -10,24 +10,59 @@ import sys
 import time
 
 import cv2
-from PIL import Image
+from googleapiclient import discovery, errors
 from oauth2client.client import GoogleCredentials
 from oauth2client.service_account import ServiceAccountCredentials
-from googleapiclient import discovery, errors
+from PIL import Image
+import requests
+
+def log(level, message):
+  """Helper logging function. Could be extended later
+  """
+  time_stamp = time.strftime('%Y-%m-%d %H:%M:%S')
+  print('%s: (%s) %s' % (level, time_stamp, message))
+
 
 def build_vision_api_client(json_keyfile_name):
-  discovery_url = 'https://{api}.googleapis.com/$discovery/rest?version={apiVersion}'
+  """Build the discovery client for Vision API using a Service Account
+  secret key JSON file.
+
+  TODO: Implement alternatives like default credentials, etc.
+
+  Args:
+    json_keyfile_name: path to service account secret JSON file
+  Returns:
+    auth'd Vision API client
+  """
+  url = 'https://{api}.googleapis.com/$discovery/rest?version={apiVersion}'
   scopes = [ 'https://www.googleapis.com/auth/cloud-platform' ]
   credentials = ServiceAccountCredentials.from_json_keyfile_name(
       json_keyfile_name, scopes=scopes)
   client = discovery.build('vision', 'v1', credentials=credentials,
-      discoveryServiceUrl=discovery_url)
+      discoveryServiceUrl=url)
   return client
 
 def build_vision_request(b64image, features):
+  """Build a JSON structure for a single image to be added to a Vision API
+  annotation request.
+
+  Args:
+    b64image: base64-encoded image (including file headers)
+    features: List of Vision API feature dicts
+  Returns:
+    dict representing a single image request
+  """
   return { 'image': { 'content': b64image }, 'features': features }
 
 def build_face_detection_request(b64image, max_results=3):
+  """Build a feature dict for face detection annotation request
+
+  Args:
+    b64image: base64-encoded image (including file headers)
+    max_results: (optional) maximum number of results in response
+  Returns:
+    dict representing a single face detection feature request
+  """
   return build_vision_request(b64image, [{
     'type': 'FACE_DETECTION',
     'maxResults': max_results
@@ -49,18 +84,31 @@ def get_face_confidences(response):
         confidences.append(face['detectionConfidence'])
   return [ 0.0 ] if len(confidences) == 0 else confidences
 
-def notify_slack(confidence):
+
+def notify_slack(webhook_url, confidence):
   """Send message with attachment to the configured Slack Incoming Webhook.
 
   TODO: include the camera frame in the attachment of the message
 
   Args:
-
+    webhook_url: Slack Incoming Webhook URL
+    confidence: the confidence value of the prediction
+  Returns:
+    None
   """
-  print("Someone is at the door! (%.3f%% sure)" % (confidence * 100.0))
+  response = requests.post(webhook_url, json={
+      'text': "<!here>: _*Someone is at the door!* (I'm %d%% sure)_" % (
+        int(confidence*100.0))
+    })
 
-def detect_faces(vision_api_client, camera, sleep_secs, timeout_secs, window_size,
-    min_confidence, resize=None):
+  if (response.status_code == 200):
+    log('INFO', 'Successfully posted message to Slack')
+  else:
+    log('ERROR', 'Failed to send Slack message: ' + response.text)
+
+
+def detect_faces(vision_api_client, camera, webhook_url, sleep_secs,
+    timeout_secs, window_size, min_confidence, resize=None, verbose=False):
   """Keep reading frames from the camera and checking them for presence of
   any faces. When a face is present, notify your configured Slack Incoming
   Webhook that someone is at the door.
@@ -80,6 +128,7 @@ def detect_faces(vision_api_client, camera, sleep_secs, timeout_secs, window_siz
   Args:
     vision_api_client: Google Cloud Vision API client object
     camera: CV2 VideoCapture object
+    webhook_url: Slack Incoming Webhook URL
     sleep_secs: number of seconds to sleep between frames
     window_size: number of frames over which to average confidence
     min_confidence: minimum threshold for detection confidence
@@ -97,7 +146,7 @@ def detect_faces(vision_api_client, camera, sleep_secs, timeout_secs, window_siz
   while True:
     grabbed, frame = camera.read()
     if not grabbed:
-      print("WARNING: Could not read frame from camera. Aborting detection")
+      log('WARNING', 'Could not read frame from camera. Aborting detection')
       break
 
     # Convert to RGB (cv2 uses BGR by default)
@@ -119,22 +168,26 @@ def detect_faces(vision_api_client, camera, sleep_secs, timeout_secs, window_siz
     try:
       response = request.execute()
     except errors.HttpError as err:
-      print('ERROR: Failed Vision request:', err)
+      log('ERROR', 'Vision API request failed: ' + err)
       continue
+      
+    if verbose:
+      log('INFO', 'Vision API request successful')
 
     # Update window and determine if we should notify Slack
     window.extend(get_face_confidences(response))
     confidence = sum(window) / window_size
-    print(confidence, window)
     triggered  = confidence >= min_confidence
+
+    if verbose:
+      log('INFO', 'Confidence of face presence: %f' % confidence)
 
     if triggered:
       if not notified and secs_since_notification >= timeout_secs:
-        notify_slack(confidence)
+        notify_slack(webhook_url, confidence)
         notified = True
         secs_since_notification = 0
     else:
-      print("nobody is here")
       notified = False
       secs_since_notification += sleep_secs
 
@@ -148,6 +201,12 @@ def main(argv):
       required=True,
       type=str,
       help='Path to a Google Cloud service account credentials JSON'
+    )
+  parser.add_argument(
+      '--webhook-url',
+      required=True,
+      type=str,
+      help='Slack Incoming Webhook URL'
     )
   parser.add_argument(
       '--device-index',
@@ -198,6 +257,12 @@ def main(argv):
       type=float,
       help='Minimum detection confidence threshold (averaged over window)'
     )
+  parser.add_argument(
+      '--verbose',
+      required=False,
+      action='store_true',
+      help='If True, print update of every single camera polling iteration'
+    )
   args = parser.parse_args(argv)
 
   # We need a working camera (VideoCapture) and an auth'd API client
@@ -207,11 +272,14 @@ def main(argv):
   # Run the detection loop (program will exit only if it loses camera feed)
   # See docstring for `detect_faces()`
   detect_faces(client, camera,
+      args.webhook_url,
       args.detection_sleep_secs,
       args.detection_timeout_secs,
       args.detection_window_size,
       args.detection_min_confidence,
-      resize=(args.width, args.height))
+      resize=(args.width, args.height),
+      verbose=args.verbose
+    )
 
 if __name__ == '__main__':
   main(sys.argv[1:])
