@@ -100,12 +100,11 @@ def notify_slack(webhook_url, confidence):
   """
   percentage = int(confidence * 100.0)
   response = requests.post(webhook_url, json={
-      'text': '<!here>:',
       'attachments': [
         {
           'fallback': 'Someone is at the door!',
-          'color': COLORS[percentage//25],
-          'title': 'Someone is at the door!',
+          'color': COLORS[percentage // 25 - 1],
+          'title': '<!here>: Someone is at the door!',
           'text': "I'm %.1f%% sure" % percentage,
           'ts': time.time()
         }
