@@ -16,6 +16,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 from PIL import Image
 import requests
 
+COLORS = 'danger warning good good'.split()
+
 def log(level, message):
   """Helper logging function. Could be extended later
   """
@@ -96,9 +98,18 @@ def notify_slack(webhook_url, confidence):
   Returns:
     None
   """
+  percentage = int(confidence * 100.0)
   response = requests.post(webhook_url, json={
-      'text': "<!here>: _*Someone is at the door!* (I'm %d%% sure)_" % (
-        int(confidence*100.0))
+      'text': '<!here>:',
+      'attachments': [
+        {
+          'fallback': 'Someone is at the door!',
+          'color': COLORS[percentage//25],
+          'title': 'Someone is at the door!',
+          'text': "I'm %.1f%% sure" % percentage,
+          'ts': time.time()
+        }
+      ]
     })
 
   if (response.status_code == 200):
