@@ -44,6 +44,6 @@ and make sure to enable Cloud Vision API in your project.
 Not an actual Slack Bot, but you can host this wherever you want and have it
 read from your camera.
 
-`python doorbell.py --json-keyfile /path/to/service-account-credentials.json`
+`python main.py --webhook-url _my-slack-webhook-url_ --json-keyfile _/path/to/service-account-credentials.json_`
 
-For full list of arguments, run `python doorbell.py -h`
+For full list of arguments, run `python main.py -h`
