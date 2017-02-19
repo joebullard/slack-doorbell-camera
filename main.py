@@ -79,93 +79,93 @@ def run_detection(detector, doorbell, sleep_secs, timeout_secs, window_size,
         time.sleep(sleep_secs)
 
 def main(argv):
-  parser = argparse.ArgumentParser()
-  parser.add_argument(
-      '--webhook-url',
-      required=True,
-      type=str,
-      help='Slack Incoming Webhook URL'
-    )
-  parser.add_argument(
-      '--json-keyfile',
-      required=False,
-      default=None,
-      type=str,
-      help='Path to a Google Cloud service account credentials JSON'
-    )
-  parser.add_argument(
-      '--device-index',
-      required=False,
-      default=0,
-      type=int,
-      help='Camera device index (typically 0)'
-    )
-  parser.add_argument(
-      '--width',
-      required=False,
-      default=480,
-      type=int,
-      help='Video frame width'
-    )
-  parser.add_argument(
-      '--height',
-      required=False,
-      default=320,
-      type=int,
-      help='Video frame height'
-    )
-  parser.add_argument(
-      '--detection-sleep-secs',
-      required=False,
-      default=1.0,
-      type=float,
-      help='Number of seconds to sleep between reading frames from video'
-    )
-  parser.add_argument(
-      '--detection-timeout-secs',
-      required=False,
-      default=10,
-      type=float,
-      help='Number of seconds after a notification during which no new notifications should be sent.'
-    )
-  parser.add_argument(
-      '--detection-window-size',
-      required=False,
-      default=4,
-      type=int,
-      help='Number of frames to consider when detecting faces'
-    )
-  parser.add_argument(
-      '--detection-min-confidence',
-      required=False,
-      default=0.70,
-      type=float,
-      help='Minimum detection confidence threshold (averaged over window)'
-    )
-  parser.add_argument(
-      '--verbose',
-      required=False,
-      action='store_true',
-      help='If True, print update of every single detection iteration'
-    )
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--webhook-url',
+        required=True,
+        type=str,
+        help='Slack Incoming Webhook URL'
+      )
+    parser.add_argument(
+        '--json-keyfile',
+        required=False,
+        default=None,
+        type=str,
+        help='Path to a Google Cloud service account credentials JSON'
+      )
+    parser.add_argument(
+        '--device-index',
+        required=False,
+        default=0,
+        type=int,
+        help='Camera device index (typically 0)'
+      )
+    parser.add_argument(
+        '--width',
+        required=False,
+        default=480,
+        type=int,
+        help='Video frame width'
+      )
+    parser.add_argument(
+        '--height',
+        required=False,
+        default=320,
+        type=int,
+        help='Video frame height'
+      )
+    parser.add_argument(
+        '--detection-sleep-secs',
+        required=False,
+        default=1.0,
+        type=float,
+        help='Number of seconds to sleep between reading frames from video'
+      )
+    parser.add_argument(
+        '--detection-timeout-secs',
+        required=False,
+        default=10,
+        type=float,
+        help='Number of seconds after a notification during which no new notifications should be sent.'
+      )
+    parser.add_argument(
+        '--detection-window-size',
+        required=False,
+        default=4,
+        type=int,
+        help='Number of frames to consider when detecting faces'
+      )
+    parser.add_argument(
+        '--detection-min-confidence',
+        required=False,
+        default=0.70,
+        type=float,
+        help='Minimum detection confidence threshold (averaged over window)'
+      )
+    parser.add_argument(
+        '--verbose',
+        required=False,
+        action='store_true',
+        help='If True, print update of every single detection iteration'
+      )
 
-  args = parser.parse_args(argv)
+    args = parser.parse_args(argv)
 
-  doorbell = SlackDoorbell(args.webhook_url)
-  camera = cv2.VideoCapture(args.device_index)
-  vision = VisionAPIClient(args.json_keyfile)
-  detector = FaceDetector(camera, vision,
-                resize_resolution=(args.width, args.height))
+    doorbell = SlackDoorbell(args.webhook_url)
+    camera = cv2.VideoCapture(args.device_index)
+    vision = VisionAPIClient(args.json_keyfile)
+    detector = FaceDetector(camera, vision,
+                  resize_resolution=(args.width, args.height))
 
-  # The detection loop will exit only if it loses camera feed
-  # See docstring for `run_detection()`
-  run_detection(detector, doorbell,
-      args.detection_sleep_secs,
-      args.detection_timeout_secs,
-      args.detection_window_size,
-      args.detection_min_confidence,
-      verbose=args.verbose
-    )
+    # The detection loop will exit only if it loses camera feed
+    # See docstring for `run_detection()`
+    run_detection(detector, doorbell,
+        args.detection_sleep_secs,
+        args.detection_timeout_secs,
+        args.detection_window_size,
+        args.detection_min_confidence,
+        verbose=args.verbose
+      )
 
 if __name__ == '__main__':
-  main(sys.argv[1:])
+    main(sys.argv[1:])
