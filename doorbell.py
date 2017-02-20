@@ -4,9 +4,9 @@ COLORS = 'danger warning good good'.split()
 
 class SlackDoorbellError(Exception):
 
-    def __init__(self, message, http_status_code):
+    def __init__(self, message, http_code):
         super(Exception, self).__init__('(%d) "%s"' % (message, http_code))
-        self.http_status_code = http_status_code
+        self.http_code = http_code
 
 class SlackDoorbell:
 
