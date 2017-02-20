@@ -10,7 +10,8 @@ class SlackDoorbellError(Exception):
 
 class SlackDoorbell:
 
-    DEFAULT_MESSAGE = '<!here>: Someone is at the door!'
+    DEFAULT_MENTION = '<!here>:'
+    DEFAULT_MESSAGE = 'Someone is at the door!'
 
     def __init__(self, webhook_url):
         """Doorbell which 'rings' a Slack channel through an Incoming Webhook
@@ -22,18 +23,21 @@ class SlackDoorbell:
         """
         self._webhook_url = webhook_url
 
-    def ring(self, message=DEFAULT_MESSAGE, confidence=None):
+    def ring(self, message=DEFAULT_MESSAGE, mention=DEFAULT_MENTION,
+            confidence=None):
         """Ring the doorbell (i.e. send message to the Incoming Webhook.)
 
         Args:
-            message: (optional) non-standard message text
+            message: (optional) for non-standard message text
+            mention: (optional) for non-standard @mention
             confidence: (optional) confidence value of the doorbell trigger
         Returns:
             None
         Raises:
             SlackDoorbellError (based on bad HTTP status codes)
         """
-        body = { 'attachments': [ { 'fallback': message, 'title': message } ] }
+        body = { 'attachments': [ {
+            'fallback': message, 'pretext': mention, 'title': message } ] }
 
         # Optional confidence formatting
         if confidence is not None:
