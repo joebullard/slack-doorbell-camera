@@ -13,15 +13,17 @@ class SlackDoorbell:
     DEFAULT_MENTION = '<!here>:'
     DEFAULT_MESSAGE = 'Someone is at the door!'
 
-    def __init__(self, webhook_url):
+    def __init__(self, webhook_url, stream_addr=None):
         """Doorbell which 'rings' a Slack channel through an Incoming Webhook
 
         Args:
             webhook_url: valid Slack Incoming Webhook URL
+            stream_addr: (optional) address of motion cam stream
         Returns:
-            None
+            SlackDoorbell object
         """
         self._webhook_url = webhook_url
+        self._stream_addr = stream_addr
 
     def ring(self, message=DEFAULT_MESSAGE, mention=DEFAULT_MENTION,
             confidence=None):
@@ -36,25 +38,25 @@ class SlackDoorbell:
         Raises:
             SlackDoorbellError (based on bad HTTP status codes)
         """
-        body = {
-                'attachments': [
-                    {
-                        'color': 'warning',
-                        'fallback': message,
-                        'pretext': mention,
-                        'title': message,
-                        'text': '<http://10.0.64.156:8081|Live stream>',
-                    }
-                ]
+        attachment = {
+                'fallback': message,
+                'pretext': mention,
+                'title': message,
+                'color': 'warning',
             }
+
+        # Include link to live stream (if there is one)
+        if self._stream_addr is not None:
+            attachment['text'] = '<%s|Live stream>' % self._stream_addr
 
         # Optional confidence formatting
         if confidence is not None:
             percentage = int(confidence * 100.0)
-            body['attachments'][0]['footer'] = "I'm %.1f%% sure" % percentage
-            body['attachments'][0]['color'] = COLORS[percentage // 25 - 1]
+            attachment['footer'] = "I'm %.1f%% sure" % percentage
+            attachment['color'] = COLORS[percentage // 25 - 1]
 
-        response = requests.post(self._webhook_url, json=body)
+        response = requests.post(self._webhook_url,
+                json={ 'attachments': [ attachment ] })
 
         if (response.status_code != 200):
             raise SlackDoorbellError(response.content, response.status_code)

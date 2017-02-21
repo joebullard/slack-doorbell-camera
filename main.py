@@ -28,6 +28,13 @@ def parse_args(argv):
         help='Path to a Google Cloud service account credentials JSON'
     )
     parser.add_argument(
+        '--stream-addr',
+        required=False,
+        default=None,
+        type=str,
+        help='IP address of webcam stream'
+    )
+    parser.add_argument(
         '--sleep-secs',
         required=False,
         default=1.0,
@@ -58,7 +65,7 @@ def parse_args(argv):
 def main(argv):
     args = parse_args(argv)
     vision = VisionAPIClient(args.json_keyfile)
-    doorbell = SlackDoorbell(args.webhook_url)
+    doorbell = SlackDoorbell(args.webhook_url, args.stream_addr)
     ringer = FaceDetectionDoorbellRinger(vision, doorbell,
         args.min_confidence, args.timeout_secs, verbose=args.verbose)
     ringer.run(args.motion_output_dir, args.sleep_secs)
