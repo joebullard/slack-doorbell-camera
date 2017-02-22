@@ -7,6 +7,12 @@ DISCOVERY_URL = 'https://{api}.googleapis.com/$discovery/rest' + \
                 '?version={apiVersion}'
 SCOPES = [ 'https://www.googleapis.com/auth/cloud-platform' ]
 
+class VisionAPIError(Exception):
+
+    def __init__(self, message, underlying_error):
+        super(Exception, self).__init__(message)
+        self.underlying_error = underlying_error
+
 class VisionAPIClient:
 
     def __init__(self, json_keyfile_name=None):
@@ -61,8 +67,11 @@ class VisionAPIClient:
         Returns:
             Vision API response object
         Raises:
-            googleapiclient.error.HttpError (uncaught)
+            VisionAPIError (googleapiclient.errors.HttpError)
         """
-        request = self._build_annotation_request(b64image, features)
-        response = request.execute()
-        return response
+        try:
+            request = self._build_annotation_request(b64image, features)
+            response = request.execute()
+            return response
+        except errors.HttpError as err:
+            raise VisionAPIError('Failed to execute annotation request', err)

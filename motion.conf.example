@@ -1,0 +1,46 @@
+daemon on
+
+# Replace with your preferred path (use absolute paths!)
+target_dir /mycam
+process_id_file /mycam/motion.pid
+logfile /mycam/motion.log
+
+# Replace with your video device path and preferred settings
+videodevice /dev/video0
+width 480
+height 320
+rotate 270
+auto_brightness off
+
+# We want to limit the number of Vision API calls and 
+framerate 5
+
+# Threshold for number of changed pixels defined as "motion"
+threshold 12000
+noise_level 64
+minimum_motion_frames 10
+
+# Image output settings
+picture_type jpeg
+quality 90
+text_left Doorcam
+
+# No movie files
+ffmpeg_output_movies off
+
+# Stream the camera so we can see who's at the door
+stream_port 8081
+stream_quality 50
+stream_maxrate 1
+stream_localhost off
+
+# For changing webcam settings remotely
+webcontrol_port 8080
+webcontrol_localhost off
+webcontrol_authentication mycam_admin:mycam_password
+
+# Despeckle motion image using (e)rode or (d)ilate or (l)abel (Default: not defined)
+# Recommended value is EedDl. Any combination (and number of) of E, e, d, and D is valid.
+# (l)abeling must only be used once and the 'l' must be the last letter.
+# Comment out to disable
+despeckle_filter EedDl
