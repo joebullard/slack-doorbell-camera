@@ -44,14 +44,14 @@ def parse_args(argv):
     parser.add_argument(
         '--min-confidence',
         required=False,
-        default=0.70,
+        default=0.50,
         type=float,
         help='Minimum detection confidence threshold of face detection'
     )
     parser.add_argument(
         '--timeout-secs',
         required=False,
-        default=10,
+        default=20,
         type=float,
         help='Number of seconds to wait before ringing again')
     parser.add_argument(
